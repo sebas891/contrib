@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+# Plugin to monitor incoming mailman subscription requests
+#
+# Parameters understood:
+#
+# 	config   (required)
+# 	autoconf (optional)
+#
+
+
+mktempfile () {
+mktemp -t 
+}       
+
+MAILMAN_LOG=${logfile:-/var/log/mailman/subscribe}
+STATEFILE=$MUNIN_PLUGSTATE/mailman-subscribe.offset
+LOGTAIL=${logtail:-`which logtail`}
+
+if [ "$1" = "autoconf" ]; then
+        if [ -f "${MAILMAN_LOG}"  -a -n "${LOGTAIL}" -a -x "${LOGTAIL}" ] ; then
+		echo yes
+		exit 0
+	else
+		echo no
+		exit 1
+	fi
+fi
+
+if [ "$1" = "config" ]; then
+	echo 'graph_title Mailman susbcription requests'
+	echo 'graph_order pending admin_mass_sub member_mgt_page'
+	echo 'graph_category mailinglist'
+	echo 'graph_vlabel Count'
+	echo 'graph_scale no'
+
+##	echo 'graph_args --base 1000 -l 0'
+	echo 'pending.label pending'
+#	echo 'pending.type DERIVE'
+	echo 'admin_mass_sub.label admin_mass_sub'
+#	echo 'admin_mass_sub.type DERIVE'
+	echo 'member_mgt_page.label member_mgt_page'
+#	echo 'member_mgt_page.type DERIVE'
+
+        exit 0
+fi
+
+
+pending=0
+admin_mass_sub=0
+member_mgt_page=0
+
+ARGS=0
+`$LOGTAIL /etc/hosts 2>/dev/null >/dev/null`
+if [ $? = 66 ]; then
+    if [ ! -n "$logtail" ]; then
+	ARGS=1
+    fi
+fi
+
+TEMP_FILE=`mktempfile munin-mailman-subscribe.XXXXXX`
+
+if [ -n "$TEMP_FILE" -a -f "$TEMP_FILE" ]
+then
+	if [ $ARGS != 0 ]; then
+	    $LOGTAIL ${MAILMAN_LOG} $STATEFILE | grep 'post[fix|grey]' > ${TEMP_FILE}
+	else
+	    $LOGTAIL ${MAILMAN_LOG} $STATEFILE | grep 'post[fix|grey]' > ${TEMP_FILE}
+	fi
+
+	pending=`grep 'pending' ${TEMP_FILE} | wc -l`
+	admin_mass_sub=`grep 'admin_mass_sub' ${TEMP_FILE} | wc -l` 
+	member_mgt_page=`grep 'member mgt page' ${TEMP_FILE} | wc -l`
+
+	/bin/rm -f $TEMP_FILE
+fi
+
+echo "pending.value ${pending}"
+echo "admin_mass_sub.value ${admin_mass_sub}"
+echo "member_mgt_page.value ${member_mgt_page}"
+
