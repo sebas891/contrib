@@ -7,6 +7,7 @@
 # 	config   (required)
 # 	autoconf (optional)
 #
+# You probably want to run this under the "list" user.
 
 
 mktempfile () {
@@ -63,9 +64,9 @@ TEMP_FILE=`mktempfile munin-mailman-subscribe.XXXXXX`
 if [ -n "$TEMP_FILE" -a -f "$TEMP_FILE" ]
 then
 	if [ $ARGS != 0 ]; then
-	    $LOGTAIL ${MAILMAN_LOG} $STATEFILE | grep 'post[fix|grey]' > ${TEMP_FILE}
+	    $LOGTAIL ${MAILMAN_LOG} $STATEFILE > ${TEMP_FILE}
 	else
-	    $LOGTAIL ${MAILMAN_LOG} $STATEFILE | grep 'post[fix|grey]' > ${TEMP_FILE}
+	    $LOGTAIL ${MAILMAN_LOG} $STATEFILE > ${TEMP_FILE}
 	fi
 
 	pending=`grep 'pending' ${TEMP_FILE} | wc -l`
